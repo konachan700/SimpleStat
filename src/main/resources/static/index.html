@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SimpleStat</title>
+
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap-nightshade.min.css">
+    <link rel="stylesheet" type="text/css" href="./css/jquery.dataTables.min.css">
+
+    <script src="js/sockjs.min.js"></script>
+    <script src="js/stomp.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/jquery-3.6.1.min.js"></script>
+    <script src="js/jquery.dataTables.min.js"></script>
+    <script src="js/chart.min.js"></script>
+    <script src="js/darkmode.min.js"></script>
+
+    <style>
+        .padding-top-5px { padding-top: 9px }
+        .padding-1px { padding-top: 1px; padding-bottom: 1px; line-height: 0.8 }
+
+        :root {
+            --theadColor: #222;
+            --theadTextColor: #fff;
+            --darkColor:#111;
+            --lightColor:#fff;
+            --darkRowColor: #111;
+        }
+        body {
+            font-family: "Open Sans", sans-serif;
+        }
+        table.dataTable {
+            border:0px solid #000;
+            background-color: #000;
+        }
+        th,tr,td
+        {
+            border-color: #222 !important;
+        }
+        thead {
+            background-color: var(--theadColor);
+
+        }
+        thead > tr,
+        thead > tr > th {
+            background-color: transparent;
+            color: var(--theadTextColor) !important;
+            font-weight: normal;
+            text-align: start;
+        }
+        table.dataTable thead th,
+        table.dataTable thead td {
+            border-bottom: 0px solid #111 !important;
+        }
+        .dataTables_wrapper > div {
+            margin: 5px;
+        }
+        table.dataTable.display tbody tr.even > .sorting_1,
+        table.dataTable.order-column.stripe tbody tr.even> .sorting_1,
+        table.dataTable.display   tbody tr.even,
+        table.dataTable.display tbody tr.odd > .sorting_1,
+        table.dataTable.order-column.stripe tbody tr.odd > .sorting_1,
+        table.dataTable.display tbody tr.odd {
+            background-color: var(--darkRowColor);
+            color:var(--lightColor);
+            font-size: 14px;
+            font-weight: bold;
+        }
+        table.dataTable thead th {
+            position: relative;
+            background-image: none !important;
+        }
+        table.dataTable thead th.sorting:after,
+        table.dataTable thead th.sorting_asc:after,
+        table.dataTable thead th.sorting_desc:after {
+            position: absolute;
+            top: 12px;
+            right: 8px;
+            display: block;
+            font-family: "Font Awesome\ 5 Free";
+        }
+        table.dataTable thead th.sorting:after {
+            content: "\f0dc";
+            color: #ddd;
+            font-size: 0.8em;
+            padding-top: 0.12em;
+        }
+        table.dataTable thead th.sorting_asc:after {
+            content: "\f0de";
+        }
+        table.dataTable thead th.sorting_desc:after {
+            content: "\f0dd";
+        }
+        table.dataTable.display tbody tr:hover > .sorting_1,
+        table.dataTable.order-column.hover tbody tr:hover > .sorting_1,
+        tbody tr:hover {
+            background-color: var(--darkColor) !important;
+            color: #fff;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: none !important;
+            border-radius: 50px;
+            background-color: var(--theadColor) !important;
+            color:var(--lightColor) !important
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            background: none !important;
+            color:var(--darkColor) !important
+        }
+        .paginate_button.current:hover
+        {
+            background: none !important;
+            border-radius: 50px;
+            background-color: var(--theadColor) !important;
+            color:#fff !important
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            border: 1px solid #979797;
+            background: none !important;
+            border-radius: 50px !important;
+            background-color: #000 !important;
+            color: #fff !important;
+        }
+
+        .col {
+            padding: 0;
+        }
+
+        .card {
+            background-color: #111111;
+        }
+    </style>
+</head>
+<body style="background-color: #000000">
+
+<div class=".container-fluid" style="background-color: #000000">
+        <div class="row" style="width: 1600px; background-color: #000000">
+            <div class="col">
+                <div class="card" style="padding: 6px; margin: 3px 3px 0 0">
+                    <div class="card-body">
+                        <h5 class="card-title" style="color: #ff9900">Total network usage</h5>
+                        <canvas id="networkChart" width="450" height="275"></canvas>
+                        <table id="general-table-netifaces" class="display table table-bordered" style="width:100%; margin-top: 6px;">
+                            <thead>
+                            <tr>
+                                <th>Iface name</th>
+                                <th>RX</th>
+                                <th>TX</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card" style="padding: 6px; margin: 3px 3px 0 0">
+                    <div class="card-body">
+                        <h5 class="card-title" id="cpu_load_title" style="color: #ff9900">Total CPU usage</h5>
+                        <canvas id="cpuChart" width="450" height="275"></canvas>
+                    </div>
+                </div>
+                <div class="card" style="padding: 6px; margin: 3px 3px 0 0">
+                    <div class="card-body">
+                        <h5 class="card-title" style="color: #ff9900">Disk usage</h5>
+                        <table id="general-table-disks" class="display table table-bordered" style="width:100%; margin-top: 6px;">
+                            <thead>
+                            <tr>
+                                <th>Mount point</th>
+                                <th>Total</th>
+                                <th>Free</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card" style="padding: 6px; margin: 3px 3px 0 0">
+                    <div class="card-body">
+                        <h1 id="currentTime" style="text-align: center; font-size: 96px; color: #ff9900"></h1>
+                        <h1 id="currentDate" style="text-align: center; font-size: 36px; color: #ff9900"></h1>
+                    </div>
+                </div>
+                <div class="card" style="padding: 6px; margin: 3px 3px 0 0">
+                    <div class="card-body">
+                        <h5 class="card-title" style="color: #ff9900">Memory usage</h5>
+                        <div class="progress" style="height: 32px;">
+                            <div class="progress-bar bg-warning" id="memory_pb" role="progressbar" style="width: 1%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0</div>
+                        </div>
+                        <table id="general-table-mem" class="display table table-bordered" style="width:100%; margin-top: 6px;">
+                            <thead>
+                            <tr>
+                                <th>Total</th>
+                                <th>Free</th>
+                                <th>Cached</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+
+<script>
+    var socketClient = new SockJS('/websocket');
+    var stompClient = Stomp.over(socketClient);
+    stompClient.connect({}, function(frame) {
+        stompClient.subscribe('/topic/general', function(messageOutput) {
+            let json = JSON.parse(messageOutput.body);
+            $('#memory_pb').css('width', json.memFreePercentage + '%').attr('aria-valuenow', json.memFreePercentage);
+            $('#memory_pb').html(json.memFreePercentage + '%')
+
+            tableCreateOrUpdate('#general-table-mem', [{
+                total : json.memTotal + ' MB',
+                free : json.memFree + ' MB',
+                cached : json.memCached + ' MB'
+            }], [
+                { "data": "total" },
+                { "data": "free" },
+                { "data": "cached" }
+            ]);
+            tableCreateOrUpdate('#general-table-disks', json.disks, [
+                { "data": "mountPoint" },
+                { "data": "free" },
+                { "data": "total" }
+            ]);
+            tableCreateOrUpdate('#general-table-netifaces', json.netInterfaces, [
+                { "data": "ifName" },
+                { "data": "netInBytes" },
+                { "data": "netOutBytes" }
+            ]);
+            totalCPUChartUpdate(json);
+            totalNetworkChartUpdate(json);
+
+            $("#currentTime").html(new Date().toLocaleTimeString('ru-RU', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric", timeZone: 'Europe/Moscow'}));
+            $("#currentDate").html(
+                new Date().toLocaleDateString('ru-RU', { day: "numeric", month: "long", year: "numeric", timeZone: 'Europe/Moscow'}) +
+                "<br>" +
+                new Date().toLocaleDateString('ru-RU', { weekday: "long", timeZone: 'Europe/Moscow'})
+            );
+        });
+        stompClient.usr_subscribed = true;
+    });
+</script>
+<script src="js/user-utils.js"></script>
+<script src="js/user-charts.js"></script>
+</body>
+</html>

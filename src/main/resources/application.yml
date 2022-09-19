@@ -1,0 +1,14 @@
+spring:
+  resources:
+    static-locations: classpath:/static/
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
